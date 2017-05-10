@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -15,11 +16,11 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "mwebc"
 	app.Usage = "Monitor HTTP Web Services Client"
-
 	app.Commands = []cli.Command{
 		{
-			Name:  "init",
-			Usage: "Load configuration",
+			Name:        "init",
+			Usage:       "use it to init client config",
+			Description: "This function generate .mwebc file to init application",
 			Action: func(c *cli.Context) {
 				println("Load Configuration ", c.Args().First())
 			},
@@ -41,10 +42,53 @@ func main() {
 		{
 			Name:  "proxy",
 			Usage: "create proxy monitor",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "host, hs",
+					Value: "",
+					Usage: "host to proxy",
+				},
+				cli.StringFlag{
+					Name:  "port, p",
+					Value: "",
+					Usage: "port to proxy",
+				},
+			},
+			Subcommands: []cli.Command{
+				{
+					Name:  "stop",
+					Usage: "stop proxy",
+					Action: func(c *cli.Context) error {
+						fmt.Println("stop proxy...")
+						enviroment := env.NewUnsetEnv()
+						enviroment.UnsetGSettings()
+						return nil
+					},
+				},
+			},
 			Action: func(c *cli.Context) {
-				enviroment := env.NewEnv("127.0.0.1", "8080")
-				//enviroment.GSettings()
-				enviroment.UnsetGSettings()
+				host := c.String("host")
+				port := c.String("port")
+				first := c.Args().First()
+
+				if first == "stop" {
+					return
+				}
+				if host == "" && port == "" {
+					fmt.Println("[mwebc] - Error : host and port are necessary")
+					fmt.Println("Plx , check de help command :' mwebc proxy -h' ")
+					return
+				}
+				fmt.Println("start proxy...")
+				enviroment := env.NewEnv(host, port)
+				enviroment.GSettings()
+			},
+		},
+		{
+			Name:  "start",
+			Usage: "Start send data to center",
+			Action: func(c *cli.Context) {
+				log.Print("Send data")
 			},
 		},
 	}

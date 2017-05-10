@@ -12,8 +12,15 @@ type Env struct {
 	Port string
 }
 
+type UnSetEnv struct {
+}
+
 func NewEnv(host string, port string) *Env {
 	return &Env{host, port}
+}
+
+func NewUnsetEnv() *UnSetEnv {
+	return &UnSetEnv{}
 }
 
 func execCmd(cmdName string, cmdArgs []string, cmdExec string) {
@@ -63,17 +70,40 @@ func (env *Env) setGSettingsMode() {
 	execCmd(cmdName, cmdArgs, "gsettingsMode")
 }
 
-func (env *Env) unsetGSettingsMode() {
+func (env *Env) setEnvVariableHttpProxy() {
+	url := "http://" + env.Host + ":" + env.Port
+	os.Setenv("http_proxy", url)
+	os.Setenv("HTTP_PROXY", url)
+
+}
+func (env *Env) setEnvVariableHttpsProxy() {
+	url := "https://" + env.Host + ":" + env.Port
+	os.Setenv("https_proxy", url)
+	os.Setenv("HTTPS_PROXY", url)
+}
+
+func (env *UnSetEnv) unsetEnvVariableHttpProxy() {
+	os.Unsetenv("http_proxy")
+	os.Unsetenv("HTTP_PROXY")
+
+}
+func (env *UnSetEnv) unsetEnvVariableHttpsProxy() {
+	os.Unsetenv("https_proxy")
+	os.Unsetenv("HTTPS_PROXY")
+}
+
+func (env *UnSetEnv) unsetGSettingsMode() {
 	cmdName := "gsettings"
 	cmdArgs := []string{"set", "org.gnome.system.proxy", "mode", "none"}
 	execCmd(cmdName, cmdArgs, "gsettingsMode")
 }
-func (env *Env) unsetGSettingsHost() {
+
+func (env *UnSetEnv) unsetGSettingsHost() {
 	cmdName := "gsettings"
 	cmdArgs := []string{"set", "org.gnome.system.proxy.http", "host", ""}
 	execCmd(cmdName, cmdArgs, "gsettingsHost")
 }
-func (env *Env) unsetGSettingsPort() {
+func (env *UnSetEnv) unsetGSettingsPort() {
 	cmdName := "gsettings"
 	cmdArgs := []string{"set", "org.gnome.system.proxy.http", "port", "0"}
 	execCmd(cmdName, cmdArgs, "gsettingsPort")
@@ -90,9 +120,11 @@ func (env *Env) GSettings() {
 	env.setGSettingsPort()
 	env.setGSettingsMode()
 	env.gBashConfigTmp()
+	env.setEnvVariableHttpProxy()
+	env.setEnvVariableHttpsProxy()
 }
 
-func (env *Env) UnsetGSettings() {
+func (env *UnSetEnv) UnsetGSettings() {
 	env.unsetGSettingsHost()
 	env.unsetGSettingsPort()
 	env.unsetGSettingsMode()
