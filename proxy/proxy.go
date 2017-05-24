@@ -143,7 +143,7 @@ func (sc *stoppableConn) Close() error {
 	return sc.Conn.Close()
 }
 
-func start() {
+func Start() {
 	verbose := flag.Bool("v", false, "should every proxy request be logged to stdout")
 	addr := flag.String("l", ":8080", "on which address should the proxy listen")
 	flag.Parse()

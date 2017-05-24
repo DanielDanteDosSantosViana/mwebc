@@ -1,10 +1,11 @@
 package env
 
 import (
-	"bufio"
-	"fmt"
+	"errors"
 	"os"
 	"os/exec"
+
+	"github.com/Sirupsen/logrus"
 )
 
 type Env struct {
@@ -23,109 +24,194 @@ func NewUnsetEnv() *UnSetEnv {
 	return &UnSetEnv{}
 }
 
-func execCmd(cmdName string, cmdArgs []string, cmdExec string) {
+func execCmd(cmdName string, cmdArgs []string, cmdExec string) error {
 	cmd := exec.Command(cmdName, cmdArgs...)
-	cmdReader, err := cmd.StdoutPipe()
+	_, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
-		os.Exit(1)
+		logrus.WithFields(logrus.Fields{
+			"cmd ":    cmdName,
+			"cmdArgs": cmdArgs,
+		}).Error(err)
+		return errors.New("Error creating StdoutPipe for Cmd")
 	}
-
-	scanner := bufio.NewScanner(cmdReader)
-	go func() {
-		for scanner.Scan() {
-			fmt.Printf(cmdExec+" cmd out | %s\n", scanner.Text())
-		}
-	}()
 
 	err = cmd.Start()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
-		os.Exit(1)
+		logrus.WithFields(logrus.Fields{
+			"cmd ":    cmdName,
+			"cmdArgs": cmdArgs,
+		}).Error(err)
+		return errors.New("Error starting Cmd")
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
-		os.Exit(1)
+		logrus.WithFields(logrus.Fields{
+			"cmd ":    cmdName,
+			"cmdArgs": cmdArgs,
+		}).Error(err)
+		return errors.New("Error waiting for Cmd")
 	}
-
+	return nil
 }
 
-func (env *Env) setGSettingsHost() {
+func (env *Env) setGSettingsHost() error {
 	cmdName := "gsettings"
 	cmdArgs := []string{"set", "org.gnome.system.proxy.http", "host", env.Host}
-	execCmd(cmdName, cmdArgs, "gsettingsHost")
+	err := execCmd(cmdName, cmdArgs, "gsettingsHost")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (env *Env) setGSettingsPort() {
+func (env *Env) setGSettingsPort() error {
 	cmdName := "gsettings"
 	cmdArgs := []string{"set", "org.gnome.system.proxy.http", "port", env.Port}
-	execCmd(cmdName, cmdArgs, "gsettingsPort")
+	err := execCmd(cmdName, cmdArgs, "gsettingsPort")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (env *Env) setGSettingsMode() {
+func (env *Env) setGSettingsMode() error {
 	cmdName := "gsettings"
 	cmdArgs := []string{"set", "org.gnome.system.proxy", "mode", "manual"}
-	execCmd(cmdName, cmdArgs, "gsettingsMode")
+	err := execCmd(cmdName, cmdArgs, "gsettingsMode")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (env *Env) setEnvVariableHttpProxy() {
+func (env *Env) setEnvVariableHttpProxy() error {
 	url := "http://" + env.Host + ":" + env.Port
-	os.Setenv("http_proxy", url)
-	os.Setenv("HTTP_PROXY", url)
-
+	err := os.Setenv("http_proxy", url)
+	if err != nil {
+		return err
+	}
+	err = os.Setenv("HTTP_PROXY", url)
+	if err != nil {
+		return err
+	}
+	return nil
 }
-func (env *Env) setEnvVariableHttpsProxy() {
+func (env *Env) setEnvVariableHttpsProxy() error {
 	url := "https://" + env.Host + ":" + env.Port
-	os.Setenv("https_proxy", url)
-	os.Setenv("HTTPS_PROXY", url)
+	err := os.Setenv("https_proxy", url)
+	if err != nil {
+		return err
+	}
+	err = os.Setenv("HTTPS_PROXY", url)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (env *UnSetEnv) unsetEnvVariableHttpProxy() {
-	os.Unsetenv("http_proxy")
-	os.Unsetenv("HTTP_PROXY")
-
+func (env *UnSetEnv) unsetEnvVariableHttpProxy() error {
+	err := os.Unsetenv("http_proxy")
+	if err != nil {
+		return err
+	}
+	err = os.Unsetenv("HTTP_PROXY")
+	if err != nil {
+		return err
+	}
+	return nil
 }
-func (env *UnSetEnv) unsetEnvVariableHttpsProxy() {
-	os.Unsetenv("https_proxy")
-	os.Unsetenv("HTTPS_PROXY")
+func (env *UnSetEnv) unsetEnvVariableHttpsProxy() error {
+	err := os.Unsetenv("https_proxy")
+	if err != nil {
+		return err
+	}
+	err = os.Unsetenv("HTTPS_PROXY")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (env *UnSetEnv) unsetGSettingsMode() {
+func (env *UnSetEnv) unsetGSettingsMode() error {
 	cmdName := "gsettings"
 	cmdArgs := []string{"set", "org.gnome.system.proxy", "mode", "none"}
-	execCmd(cmdName, cmdArgs, "gsettingsMode")
+	err := execCmd(cmdName, cmdArgs, "gsettingsMode")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (env *UnSetEnv) unsetGSettingsHost() {
+func (env *UnSetEnv) unsetGSettingsHost() error {
 	cmdName := "gsettings"
 	cmdArgs := []string{"set", "org.gnome.system.proxy.http", "host", ""}
-	execCmd(cmdName, cmdArgs, "gsettingsHost")
+	err := execCmd(cmdName, cmdArgs, "gsettingsHost")
+	if err != nil {
+		return err
+	}
+	return nil
 }
-func (env *UnSetEnv) unsetGSettingsPort() {
+func (env *UnSetEnv) unsetGSettingsPort() error {
 	cmdName := "gsettings"
 	cmdArgs := []string{"set", "org.gnome.system.proxy.http", "port", "0"}
-	execCmd(cmdName, cmdArgs, "gsettingsPort")
+	err := execCmd(cmdName, cmdArgs, "gsettingsPort")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (env *Env) gBashConfigTmp() {
+func (env *Env) gBashConfigTmp() error {
 	cmdName := "echo"
 	cmdArgs := []string{"-n", "", ">", "bash_config.tmp"}
-	execCmd(cmdName, cmdArgs, "gBashConfigTmp")
+	err := execCmd(cmdName, cmdArgs, "gBashConfigTmp")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (env *Env) GSettings() {
-	env.setGSettingsHost()
-	env.setGSettingsPort()
-	env.setGSettingsMode()
-	env.gBashConfigTmp()
-	env.setEnvVariableHttpProxy()
-	env.setEnvVariableHttpsProxy()
+func (env *Env) GSettings() error {
+	err := env.setGSettingsHost()
+	if err != nil {
+		return err
+	}
+	err = env.setGSettingsPort()
+	if err != nil {
+		return err
+	}
+	err = env.setGSettingsMode()
+	if err != nil {
+		return err
+	}
+	err = env.gBashConfigTmp()
+	if err != nil {
+		return err
+	}
+	err = env.setEnvVariableHttpProxy()
+	if err != nil {
+		return err
+	}
+	err = env.setEnvVariableHttpsProxy()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (env *UnSetEnv) UnsetGSettings() {
-	env.unsetGSettingsHost()
-	env.unsetGSettingsPort()
-	env.unsetGSettingsMode()
+func (env *UnSetEnv) UnsetGSettings() error {
+	err := env.unsetGSettingsHost()
+	if err != nil {
+		return err
+	}
+	err = env.unsetGSettingsPort()
+	if err != nil {
+		return err
+	}
+	err = env.unsetGSettingsMode()
+	if err != nil {
+		return err
+	}
+	return nil
 }
